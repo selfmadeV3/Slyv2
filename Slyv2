@@ -1,0 +1,95 @@
+print('Initializing AC Bypass!')
+
+--// Services
+local Players = cloneref(game:GetService("Players"))
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+local RunService = cloneref(game:GetService("RunService"))
+local UserInputService = cloneref(game:GetService("UserInputService"))
+local Teams = cloneref(game:GetService("Teams"))
+local TweenService = cloneref(game:GetService("TweenService"))
+local Stats = cloneref(game:GetService("Stats"))
+local RunService = cloneref(game:GetService("RunService"))
+
+if game.PlaceId ~= 8206123457 or game.PlaceId == 8204899140 then
+    --&gt; Made by Unlimited, Modified/Updated by NG/Johan Peterson
+
+    --// Services
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+    --// Variables
+    local Player = game:GetService("Players").LocalPlayer
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+    local HRP = Character and Character.HumanoidRootPart
+    local Hooks = {}
+    local HandshakeArgs = nil
+    local Remote = ReplicatedStorage:WaitForChild("Remotes").CharacterSoundEvent
+    local ACString = nil
+    
+    --&gt; os.clock hook
+    local RandomNumber = math.random(1e3, 1e5)
+
+    Hooks.Clock = hookfunction(os.date, function(...)
+        return Hooks.Clock(...) + RandomNumber
+    end)
+
+    --&gt; namecall hook
+    Hooks.Namecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local Method = getnamecallmethod()
+        local Args = {...}
+
+        if not checkcaller() and self == Remote and (Method == "FireServer" or Method == "fireServer") and string.find(Args[1], "AC") then
+            if not HandshakeArgs then
+                if type(Args[2]) == "table" and #Args[2] == 19 then
+                    ACString = Args[1]
+                    HandshakeArgs = Args[2]
+                end
+            else
+                return coroutine.yield()
+            end
+        end
+
+        return Hooks.Namecall(self, ...)
+    end)
+
+    while not ACString and not HandshakeArgs do
+        task.wait()
+    end
+
+    print("Found handshake arguments.")
+
+    task.wait(3)
+
+    for i, v in pairs(getgc()) do
+        if type(v) == "function" then
+            if getinfo(v).source:find("PlayerModule.LocalScript") then
+                hookfunction(v, function() end)
+            end
+        end
+    end
+
+    print("Hooked all anticheat functions.")
+
+    local ReplicateHandshake = function()
+        return Remote:fireServer(ACString, HandshakeArgs, nil)
+    end
+
+    task.spawn(function()
+        while task.wait(0.4) do
+            local Success, Error = pcall(ReplicateHandshake)
+
+            if not Success or Error then
+                return {
+                    warn("Bypass timed out."),
+                    task.wait(20),
+                    game:GetService("Players").LocalPlayer:Kick("Bypass timed out.")
+                }
+            end
+        end
+    end)
+
+    print("Replicated handshake.")
+end
+
+task.wait()
+
+print('Done! Now Loading')
